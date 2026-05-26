@@ -35,37 +35,91 @@ document.addEventListener("DOMContentLoaded", () => {
             return sum + Math.pow(x - avg, 2);
         }, 0) / data.length;
 
-        const third = Math.floor(data.length / 3);
+        // セクション分割
+        const third       = Math.floor(data.length / 3);
+        const firstSlice  = data.slice(0, third);
+        const middleSlice = data.slice(third, third * 2);
+        const lastSlice   = data.slice(third * 2);
 
-        const avgFirst =
-            data.slice(0, third).reduce((a, b) => a + b, 0) / third;
+        // 平均（セクション別）
+        const avgFirst  = firstSlice.reduce((a, b) => a + b, 0) / firstSlice.length;
+        const avgMiddle = middleSlice.reduce((a, b) => a + b, 0) / middleSlice.length;
+        const avgLast   = lastSlice.reduce((a, b) => a + b, 0) / lastSlice.length;
 
-        const avgMiddle =
-            data.slice(third, third * 2).reduce((a, b) => a + b, 0) / third;
+        // RMS（実効値：ラウドネスの正確な指標）
+        const rms       = Math.sqrt(data.reduce((s, x) => s + x * x, 0) / data.length);
+        const rmsFirst  = Math.sqrt(firstSlice.reduce((s, x) => s + x * x, 0) / firstSlice.length);
+        const rmsMiddle = Math.sqrt(middleSlice.reduce((s, x) => s + x * x, 0) / middleSlice.length);
+        const rmsLast   = Math.sqrt(lastSlice.reduce((s, x) => s + x * x, 0) / lastSlice.length);
 
-        const avgLast =
-            data.slice(third * 2).reduce((a, b) => a + b, 0) / (data.length - third * 2);
+        // クレストファクター（ピーク÷RMS：打楽器性・アタック感の指標）
+        const crestFactor = rms > 0.0001 ? Math.abs(max) / rms : 1;
 
+        // 無音率（|x| < 0.01 のサンプルの割合）
+        let silentCount = 0;
+        for (let i = 0; i < data.length; i++) {
+            if (Math.abs(data[i]) < 0.01) silentCount++;
+        }
+        const silenceRatio = silentCount / data.length;
+
+        // 尖度（Kurtosis：分布の鋭さ、突発的な音の多さ）
+        const kurtosis = variance > 0
+            ? data.reduce((s, x) => s + Math.pow(x - avg, 4), 0) / data.length / (variance * variance)
+            : 3;
+
+        // エネルギーフレーム（音量の時間変化を200フレームで追跡）
+        const frameSize = Math.max(1, Math.floor(data.length / 200));
+        const energyFrames = [];
+        for (let i = 0; i < data.length; i += frameSize) {
+            const end = Math.min(i + frameSize, data.length);
+            let esum = 0;
+            for (let j = i; j < end; j++) esum += data[j] * data[j];
+            energyFrames.push(esum / (end - i));
+        }
+        const energyMean = energyFrames.reduce((a, b) => a + b, 0) / energyFrames.length;
+        const energyVariance = energyFrames.reduce((s, e) => s + Math.pow(e - energyMean, 2), 0) / energyFrames.length;
+
+        // エネルギーピーク数（ビート・アタック数の近似）
+        let energyPeaks = 0;
+        for (let i = 1; i < energyFrames.length - 1; i++) {
+            if (energyFrames[i] > energyFrames[i - 1] &&
+                energyFrames[i] > energyFrames[i + 1] &&
+                energyFrames[i] > energyMean * 1.5) {
+                energyPeaks++;
+            }
+        }
+
+        // ゼロクロッシング数（全体）
         let zeroCrossings = 0;
-
         for (let i = 1; i < data.length; i++) {
-            if (
-                (data[i - 1] >= 0 && data[i] < 0) ||
-                (data[i - 1] < 0 && data[i] >= 0)
-            ) {
+            if ((data[i - 1] >= 0 && data[i] < 0) || (data[i - 1] < 0 && data[i] >= 0)) {
                 zeroCrossings++;
             }
         }
 
+        // ゼロクロッシング率（各セクション：周波数成分の時間変化）
+        function zcRate(arr) {
+            let count = 0;
+            for (let i = 1; i < arr.length; i++) {
+                if ((arr[i - 1] >= 0 && arr[i] < 0) || (arr[i - 1] < 0 && arr[i] >= 0)) count++;
+            }
+            return arr.length > 1 ? count / arr.length : 0;
+        }
+        const zcRateFirst  = zcRate(firstSlice);
+        const zcRateMiddle = zcRate(middleSlice);
+        const zcRateLast   = zcRate(lastSlice);
+
         processedDataString = JSON.stringify({
-            avg: avg,
-            max: max,
-            min: min,
-            variance: variance,
-            avgFirst: avgFirst,
-            avgMiddle: avgMiddle,
-            avgLast: avgLast,
-            zeroCrossings: zeroCrossings
+            avg, max, min, variance,
+            avgFirst, avgMiddle, avgLast,
+            zeroCrossings,
+            rms, rmsFirst, rmsMiddle, rmsLast,
+            crestFactor,
+            silenceRatio,
+            kurtosis,
+            energyVariance,
+            energyPeaks,
+            zcRateFirst, zcRateMiddle, zcRateLast
         });
 
         // 結果を画面に表示
