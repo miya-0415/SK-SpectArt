@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, render_template
 import requests
+import urllib.parse
 import os
 import json
-import hashlib
 import random
 
 app = Flask(__name__)
@@ -11,10 +11,8 @@ app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 app.config['DEBUG'] = True
 app.secret_key = "kou1118"
 
-# Hugging Face
-HF_TOKEN = "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"
-API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
-hf_headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+# Pollinations.ai
+POLLINATIONS_URL = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true&model=flux"
 
 # プロンプト生成関数
 def create_prompt(output):
@@ -390,11 +388,8 @@ def start():
         image_prompt = create_prompt(raw_data)
 
         # 画像生成
-        response = requests.post(
-            API_URL,
-            headers=hf_headers,
-            json={"inputs": image_prompt}
-            )
+        url = POLLINATIONS_URL.format(prompt=urllib.parse.quote(image_prompt))
+        response = requests.get(url, timeout=60)
 
         # 画像を保存
         if response.status_code != 200:
