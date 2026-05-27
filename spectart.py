@@ -341,7 +341,7 @@ def create_prompt(output):
         # 保存
         os.makedirs("./prompts", exist_ok=True)
 
-        number = len(os.listdir("./prompts")) + 1
+        number = len(os.listdir("./prompts"))
 
         with open(
             f"./prompts/prompt_{number}.txt",
@@ -378,7 +378,7 @@ def start():
             return jsonify({"error": "No file"}), 400
 
         path = "./upload_audio/audio_"
-        number = len(os.listdir("./upload_audio")) + 1
+        number = len(os.listdir("./upload_audio"))
         path += str(number) + ".txt"
         raw_data = file.read().decode('utf-8')
         with open(path, "w", encoding='utf-8') as f:
@@ -397,7 +397,7 @@ def start():
         else:
             if not(os.path.isdir("./static/images")):
                 os.makedirs("./static/images")
-            number = len(os.listdir("./static/images")) + 1
+            number = len(os.listdir("./static/images"))
             path = f"./static/images/generated_image_{number}.png"
             with open(path, "wb") as f:
                 f.write(response.content)
