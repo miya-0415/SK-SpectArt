@@ -1,4 +1,47 @@
 # SK-SpectArt
 SK課題の作成チーム
 
-テストで入力し保存します
+dockerのインストール
+✅Docker Desktopダウンロード
+👉公式サイト
+https://www.docker.com/
+👉「Download Docker Desktop」
+
+✅ インストール
+ダウンロードしたファイルを開く
+
+チェックが重要👇
+✅ 「Use WSL 2」
+✅ OK押す
+✔ 再起動
+👉 必ず再起動
+
+✅ ⑤ Docker起動
+スタートメニューから
+👉 Docker Desktop 起動
+✔ 初回
+規約 → Accept
+ログイン → SkipでOK
+
+✅ ⑥ 動作確認（これ必須🔥）
+コマンドプロンプト or PowerShellで👇
+docker --version
+
+
+
+dockerの起動
+コマンドプロンプトでdocker-compose.yamlがあるフォルダへ行き
+docker-compose up -d
+を実行
+
+dockerの停止
+docker-compose down
+
+dockerのDB内へ入る方法
+docker exec -it spectart-db mysql -u root -p
+パスワードは
+root
+データベース名は
+spectart_db
+
+作業後は必ずdockerの停止を行ってください！

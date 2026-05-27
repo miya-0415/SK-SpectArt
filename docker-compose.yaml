@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # dbという名前のデータベース機能（コンテナ）を作ります
+  db:
+    image: mysql:latest
+    container_name: spectart-db
+    restart: always
+    # データベースの接続設定（全員共通にする）
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: spectart_db
+      MYSQL_USER: spectart_user
+      MYSQL_PASSWORD: root
+    # パソコンのポート「3306」と、Dockerの中の「3306」を繋ぐ
+    ports:
+      - "3306:3306"
+    # データを自分のPC側に保存して、Dockerを消してもデータが消えないようにする
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
