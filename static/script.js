@@ -157,8 +157,16 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(result => {
             console.log("成功:", result);
             if (result.status === "success") {
-                // アップロード成功後、トップページへ移動
-                window.location.href = "/";
+                outputHeader.innerHTML = "画像生成完了";
+                const container = document.getElementById("image-container");
+                const img = document.createElement("img");
+                img.src = result.image_url;
+                img.style.maxWidth = "100%";
+                container.innerHTML = "";
+                container.appendChild(img);
+            } else {
+                outputHeader.innerHTML = "画像生成失敗";
+                alert("画像生成に失敗しました: " + (result.error || "不明なエラー"));
             }
         })
         .catch(error => {

@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify, render_template
+from dotenv import load_dotenv
 import requests
-import urllib.parse
 import os
 import json
 import random
+
+load_dotenv()
 
 app = Flask(__name__)
 # 最大アップロードサイズを200MBに設定
@@ -11,8 +13,9 @@ app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 app.config['DEBUG'] = True
 app.secret_key = "kou1118"
 
-# Pollinations.ai
-POLLINATIONS_URL = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true&model=flux"
+# Hugging Face
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 # プロンプト生成関数
 def create_prompt(output):
@@ -388,12 +391,17 @@ def start():
         image_prompt = create_prompt(raw_data)
 
         # 画像生成
-        url = POLLINATIONS_URL.format(prompt=urllib.parse.quote(image_prompt))
-        response = requests.get(url, timeout=60)
+        response = requests.post(
+            HF_API_URL,
+            headers={"Authorization": f"Bearer {HF_TOKEN}"},
+            json={"inputs": image_prompt},
+            timeout=120
+        )
 
         # 画像を保存
         if response.status_code != 200:
-            return jsonify({"error": "Image generation failed"}), 500
+            print(f"HuggingFace error: {response.status_code} {response.text[:500]}")
+            return jsonify({"error": f"Image generation failed (HTTP {response.status_code})"}), 500
         else:
             if not(os.path.isdir("./static/images")):
                 os.makedirs("./static/images")
@@ -402,7 +410,8 @@ def start():
             with open(path, "wb") as f:
                 f.write(response.content)
 
-        return jsonify({"status": "success"})
+        image_url = f"/static/images/generated_image_{number}.png"
+        return jsonify({"status": "success", "image_url": image_url})
 
     except Exception as e:
         print(f"Error: {e}")

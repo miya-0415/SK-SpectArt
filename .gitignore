@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+upload_audio/
+prompts/
+static/images/
