@@ -19,5 +19,21 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
+  api:
+    build: ./image_generate
+    container_name: spectart-api
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./image_generate/.env
+
+  frontend:
+    build: ./frontend
+    container_name: spectart-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
 volumes:
   mysql_data:
