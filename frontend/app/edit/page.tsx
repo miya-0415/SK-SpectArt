@@ -61,7 +61,17 @@ export default function EditPage() {
   const [datePos, setDatePos] = useState<Pos>({ x: 0, y: 0 });
   const [messagePos, setMessagePos] = useState<Pos>({ x: 0, y: 0 });
   
-  const dragState = useRef<{ key: DragKey; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const dragState = useRef<{
+  key: DragKey;
+  startX: number;
+  startY: number;
+  origX: number;
+  origY: number;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+} | null>(null);
   
   const positions: Record<DragKey, Pos> = { title: titlePos, date: datePos, message: messagePos };
   const setPositions: Record<DragKey, (pos: Pos) => void> = {
@@ -82,10 +92,19 @@ export default function EditPage() {
   };
 
   const handleDragMove = (event: MouseEvent) => {
-    if (!dragState.current) return;
-    const { key, startX, startY, origX, origY } = dragState.current;
-    setPositions[key]({ x: origX + (event.clientX - startX), y: origY + (event.clientY - startY) });
-  };
+  if (!dragState.current) return;
+  const { key, startX, startY, origX, origY, minX, maxX, minY, maxY } = dragState.current;
+
+  const rawX = origX + (event.clientX - startX);
+  const rawY = origY + (event.clientY - startY);
+
+  console.log({ minX, maxX, minY, maxY });
+
+  setPositions[key]({
+    x: Math.min(Math.max(rawX, minX), maxX),
+    y: Math.min(Math.max(rawY, minY), maxY),
+  });
+};
 
   const handleDragEnd = () => {
     dragState.current = null;
@@ -94,11 +113,36 @@ export default function EditPage() {
   };
 
   const handleDragStart = (key: DragKey) => (event: React.MouseEvent) => {
-    const origin = positions[key];
-    dragState.current = { key, startX: event.clientX, startY: event.clientY, origX: origin.x, origY: origin.y };
-    window.addEventListener("mousemove", handleDragMove);
-    window.addEventListener("mouseup", handleDragEnd);
+  const origin = positions[key];
+  const element = event.currentTarget as HTMLElement;
+  const stage = element.closest<HTMLElement>("#artwork-stage");
+  if (!stage) return;
+
+  const stageRect = stage.getBoundingClientRect();
+  const elemRect = element.getBoundingClientRect();
+
+  const naturalLeft = elemRect.left - origin.x;
+  const naturalTop = elemRect.top - origin.y;
+
+  const minX = stageRect.left - naturalLeft;
+  const maxX = stageRect.right - naturalLeft - elemRect.width;
+  const minY = stageRect.top - naturalTop;
+  const maxY = stageRect.bottom - naturalTop - elemRect.height;
+
+  dragState.current = {
+    key,
+    startX: event.clientX,
+    startY: event.clientY,
+    origX: origin.x,
+    origY: origin.y,
+    minX,
+    maxX,
+    minY,
+    maxY,
   };
+  window.addEventListener("mousemove", handleDragMove);
+  window.addEventListener("mouseup", handleDragEnd);
+};
 
   const save = async () => {
     await saveArtwork("mock-artwork-id");
