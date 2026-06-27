@@ -18,6 +18,9 @@ export default function StudioPage() {
   const [signupOpen, setSignupOpen] = useState(false);
   const router = useRouter();
 
+  // 画像URL
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFile(event.target.files?.[0] ?? null);
   };
@@ -25,7 +28,8 @@ export default function StudioPage() {
   const onGenerate = async () => {
     if (file) {
       const uploaded = await uploadAudio(file);
-      await generateArtwork(uploaded.uploadId);
+      const result = await generateArtwork(uploaded.uploadId);
+      setImageUrl(result.imageUrl);  // ← 追加
     }
     setGenerated(true);
   };
@@ -106,7 +110,7 @@ export default function StudioPage() {
           </div>
 
           <div className="generated-state" id="generated-state" style={{ display: generated ? "block" : undefined }}>
-            <img src="/image/generated-sample.png" alt="Generated Artwork" className="generated-artwork" />
+            <img src={imageUrl ?? "/image/generated-sample.png"} alt="Generated Artwork" className="generated-artwork" />
 
             <h2 className="artwork-ready">Your artwork is ready</h2>
 

@@ -4,10 +4,13 @@ import requests
 import os
 import json
 import random
+from flask_cors import CORS
+import base64
 
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 # 最大アップロードサイズを200MBに設定
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 app.config['DEBUG'] = True
@@ -368,12 +371,9 @@ def create_prompt(output):
             "high detail"
         )
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
-@app.route('/start', methods=['POST'])
-def start():
+@app.route('/generating', methods=['POST'])
+def generating():
     try:
         # 音声データの受け取り
         file = request.files.get('audio_data')
@@ -410,12 +410,14 @@ def start():
             with open(path, "wb") as f:
                 f.write(response.content)
 
-        image_url = f"/static/images/generated_image_{number}.png"
-        return jsonify({"status": "success", "image_url": image_url})
+        with open(path, "rb") as f:
+            image_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+        return jsonify({"status": "success", "image_base64": image_b64})
 
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"status": "error", "error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True, use_reloader=False)
