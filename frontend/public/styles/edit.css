@@ -270,6 +270,14 @@ nav .logo img {
     text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
 }
 
+#preview-title,
+#preview-date,
+#preview-message {
+    /* ドラッグ時にテキスト選択にならないように */
+    user-select: none;
+    /* フォントの余白を減らす */
+    line-height: 1;
+}
 
 /* ==========================================
    Control Panel
