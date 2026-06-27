@@ -9,6 +9,12 @@ type PreviewPanelProps = {
   titleSize: string;
   textSize: string;
   showPrintGuide: boolean;
+  titlePos: { x: number; y: number };
+  datePos: { x: number; y: number };
+  messagePos: { x: number; y: number };
+  onTitleDragStart: (event: React.MouseEvent) => void;
+  onDateDragStart: (event: React.MouseEvent) => void;
+  onMessageDragStart: (event: React.MouseEvent) => void;
 };
 
 export function PreviewPanel({
@@ -22,6 +28,12 @@ export function PreviewPanel({
   titleSize,
   textSize,
   showPrintGuide,
+  titlePos,
+  datePos,
+  messagePos,
+  onTitleDragStart,
+  onDateDragStart,
+  onMessageDragStart,
 }: PreviewPanelProps) {
   return (
     <section className="preview-panel">
@@ -31,15 +43,45 @@ export function PreviewPanel({
 
           <div className="print-guide" id="print-guide" style={{ display: showPrintGuide ? "block" : "none" }} />
 
-          <h2 id="preview-title" className={fontClass} style={{ color, fontSize: titleSize }}>
+          <h2
+            id="preview-title"
+            className={fontClass}
+            style={{
+              color,
+              fontSize: titleSize,
+              transform: `translate(${titlePos.x}px, ${titlePos.y}px)`,
+              cursor: "grab",
+            }}
+            onMouseDown={onTitleDragStart}
+          >
             {title}
           </h2>
 
-          <p id="preview-date" className={fontClass} style={{ color, fontSize: textSize }}>
+          <p
+            id="preview-date"
+            className={fontClass}
+            style={{
+              color,
+              fontSize: textSize,
+              transform: `translate(${datePos.x}px, ${datePos.y}px)`,
+              cursor: "grab",
+            }}
+            onMouseDown={onDateDragStart}
+          >
             {date}
           </p>
 
-          <p id="preview-message" className={fontClass} style={{ color, fontSize: textSize }}>
+          <p
+            id="preview-message"
+            className={fontClass}
+            style={{
+              color,
+              fontSize: textSize,
+              transform: `translate(${messagePos.x}px, ${messagePos.y}px)`,
+              cursor: "grab",
+            }}
+            onMouseDown={onMessageDragStart}
+          >
             {message}
           </p>
         </div>
