@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { AuthProvider } from "@/context/AuthContext";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Spectart",
@@ -24,7 +26,9 @@ export default function RootLayout({
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
