@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButtons } from "@/components/ActionButtons";
 import { Header } from "@/components/Header";
 import { PageStyle } from "@/components/PageStyle";
 import { PreviewPanel } from "@/components/PreviewPanel";
 import { saveArtwork } from "@/lib/api";
+
 
 const presetClasses: Record<string, string> = {
   "Wallpaper (PC)": "preset-pc",
@@ -53,6 +54,22 @@ export default function EditPage() {
   const [textColor, setTextColor] = useState("#ffffff");
   const [size, setSize] = useState("M");
   const [showPrintGuide, setShowPrintGuide] = useState(false);
+  type Pos = { x: number; y: number };
+  type DragKey = "title" | "date" | "message";
+  
+  const [titlePos, setTitlePos] = useState<Pos>({ x: 0, y: 0 });
+  const [datePos, setDatePos] = useState<Pos>({ x: 0, y: 0 });
+  const [messagePos, setMessagePos] = useState<Pos>({ x: 0, y: 0 });
+  
+  const dragState = useRef<{ key: DragKey; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  
+  const positions: Record<DragKey, Pos> = { title: titlePos, date: datePos, message: messagePos };
+  const setPositions: Record<DragKey, (pos: Pos) => void> = {
+    title: setTitlePos,
+    date: setDatePos,
+    message: setMessagePos,
+  };
+  
   const router = useRouter();
 
   const reset = () => {
@@ -62,6 +79,25 @@ export default function EditPage() {
     setPreviewTitle("");
     setPreviewDate("");
     setPreviewMessage("");
+  };
+
+  const handleDragMove = (event: MouseEvent) => {
+    if (!dragState.current) return;
+    const { key, startX, startY, origX, origY } = dragState.current;
+    setPositions[key]({ x: origX + (event.clientX - startX), y: origY + (event.clientY - startY) });
+  };
+
+  const handleDragEnd = () => {
+    dragState.current = null;
+    window.removeEventListener("mousemove", handleDragMove);
+    window.removeEventListener("mouseup", handleDragEnd);
+  };
+
+  const handleDragStart = (key: DragKey) => (event: React.MouseEvent) => {
+    const origin = positions[key];
+    dragState.current = { key, startX: event.clientX, startY: event.clientY, origX: origin.x, origY: origin.y };
+    window.addEventListener("mousemove", handleDragMove);
+    window.addEventListener("mouseup", handleDragEnd);
   };
 
   const save = async () => {
@@ -86,6 +122,12 @@ export default function EditPage() {
           titleSize={sizes[size].title}
           textSize={sizes[size].text}
           showPrintGuide={showPrintGuide}
+          titlePos={titlePos}
+          datePos={datePos}
+          messagePos={messagePos}
+          onTitleDragStart={handleDragStart("title")}
+          onDateDragStart={handleDragStart("date")}
+          onMessageDragStart={handleDragStart("message")}
         />
 
         <section className="control-panel">
