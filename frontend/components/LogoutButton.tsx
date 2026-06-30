@@ -4,15 +4,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LogoutButton() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogout = async () => {
     setIsLoading(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await logout();
     } catch {
       // ネットワークエラーでも画面遷移は実行する
     } finally {

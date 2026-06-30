@@ -26,13 +26,19 @@ services:
       - "5000:5000"
     env_file:
       - ./image_generate/.env
+    depends_on:
+      - db
 
   frontend:
     build: ./frontend
     container_name: spectart-frontend
     ports:
       - "3000:3000"
+    environment:
+      - DATABASE_URL=mysql://root:root@db:3306/spectart_db
+      - JWT_SECRET=change-this-to-a-random-secret-in-production
     depends_on:
+      - db
       - api
 
 volumes:
