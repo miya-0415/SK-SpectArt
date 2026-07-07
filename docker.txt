@@ -28,11 +28,11 @@ docker --version
 
 dockerの起動
 コマンドプロンプトでdocker-compose.yamlがあるフォルダへ行き
-docker-compose up -d
+docker　compose up
 を実行
 
 dockerの停止
-docker-compose down
+docker　compose down
 
 dockerのDB内へ入る方法
 docker exec -it spectart-db mysql -u root -p
@@ -42,3 +42,8 @@ root
 spectart_db
 
 作業後は必ずdockerの停止を行ってください！
+
+
+追記
+画像編集でテキストが動かせないなどあったら試すこと
+docker　compose up --build
