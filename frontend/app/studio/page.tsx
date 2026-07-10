@@ -8,14 +8,15 @@ import { LoginModal } from "@/components/LoginModal";
 import { PageStyle } from "@/components/PageStyle";
 import { SignupModal } from "@/components/SignupModal";
 import { SvgFilters } from "@/components/SvgFilters";
-import { generateArtwork, login, uploadAudio } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { generateArtwork, uploadAudio } from "@/lib/api";
 
 export default function StudioPage() {
   const [file, setFile] = useState<File | null>(null);
   const [generated, setGenerated] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   // 画像URL
@@ -32,12 +33,6 @@ export default function StudioPage() {
       setImageUrl(result.imageUrl);  // ← 追加
     }
     setGenerated(true);
-  };
-
-  const onLogin = async () => {
-    await login("", "");
-    setLoginOpen(false);
-    setLoggedIn(true);
   };
 
   return (
@@ -114,7 +109,7 @@ export default function StudioPage() {
 
             <h2 className="artwork-ready">Your artwork is ready</h2>
 
-            <div id="guest-actions" style={{ display: loggedIn ? "none" : undefined }}>
+            <div id="guest-actions" style={{ display: user || loading ? "none" : undefined }}>
               <p className="login-message">作品を保存・編集するにはログインが必要です</p>
 
               <button className="login-btn" id="open-login" onClick={() => setLoginOpen(true)}>
@@ -122,7 +117,7 @@ export default function StudioPage() {
               </button>
             </div>
 
-            <div className="member-actions" id="member-actions" style={{ display: loggedIn ? "flex" : undefined }}>
+            <div className="member-actions" id="member-actions" style={{ display: user ? "flex" : "none" }}>
               <button className="action-btn">Download</button>
 
               <button className="action-btn edit-btn" onClick={() => router.push("/edit")}>
@@ -178,13 +173,17 @@ export default function StudioPage() {
       <LoginModal
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
-        onLogin={onLogin}
+        onLoginSuccess={() => setLoginOpen(false)}
         onOpenSignup={() => {
           setLoginOpen(false);
           setSignupOpen(true);
         }}
       />
-      <SignupModal open={signupOpen} onClose={() => setSignupOpen(false)} />
+      <SignupModal
+        open={signupOpen}
+        onClose={() => setSignupOpen(false)}
+        onSignupSuccess={() => setSignupOpen(false)}
+      />
       <SvgFilters />
     </>
   );
