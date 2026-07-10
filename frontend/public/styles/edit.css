@@ -270,6 +270,13 @@ nav .logo img {
     text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
 }
 
+#preview-title,
+#preview-date,
+#preview-message {
+    user-select: none;
+    line-height: 1;
+}
+
 
 /* ==========================================
    Control Panel
