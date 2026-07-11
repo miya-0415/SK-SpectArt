@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
 import { GenerationOverlay } from "@/components/GenerationOverlay";
 import { Header } from "@/components/Header";
@@ -12,6 +12,12 @@ import { useAuth } from "@/context/AuthContext";
 import { generateArtwork, uploadAudio } from "@/lib/api";
 import "@/styles/studio.css";
 
+const previewWaveform = Array.from({ length: 84 }, (_, index) => {
+  const primaryWave = Math.abs(Math.sin(index * 0.43));
+  const secondaryWave = Math.abs(Math.sin(index * 0.13 + 1.4));
+  return 0.16 + primaryWave * 0.58 + secondaryWave * 0.24;
+});
+
 export default function StudioPage() {
   const [file, setFile] = useState<File | null>(null);
   const [generated, setGenerated] = useState(false);
@@ -21,6 +27,8 @@ export default function StudioPage() {
   const [signupOpen, setSignupOpen] = useState(false);
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isLoadingPreview = searchParams.get("preview") === "loading";
 
   // 画像URL
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -55,6 +63,12 @@ export default function StudioPage() {
       setGenerationPhase("error");
     }
   };
+
+  const overlay = isLoadingPreview
+    ? { phase: "loading" as const, waveform: previewWaveform }
+    : generationPhase !== "idle" && file
+      ? { phase: generationPhase, waveform }
+      : null;
 
   return (
     <>
@@ -206,11 +220,10 @@ export default function StudioPage() {
       />
       <SvgFilters />
 
-      {generationPhase !== "idle" && file && (
+      {overlay && (
         <GenerationOverlay
-          fileName={file.name}
-          phase={generationPhase}
-          waveform={waveform}
+          phase={overlay.phase}
+          waveform={overlay.waveform}
           onRetry={onGenerate}
         />
       )}
