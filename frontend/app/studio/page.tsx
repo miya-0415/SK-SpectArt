@@ -3,6 +3,7 @@
 import { ChangeEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
+import { GenerationOverlay } from "@/components/GenerationOverlay";
 import { Header } from "@/components/Header";
 import { LoginModal } from "@/components/LoginModal";
 import { SignupModal } from "@/components/SignupModal";
@@ -14,6 +15,8 @@ import "@/styles/studio.css";
 export default function StudioPage() {
   const [file, setFile] = useState<File | null>(null);
   const [generated, setGenerated] = useState(false);
+  const [generationPhase, setGenerationPhase] = useState<"idle" | "loading" | "complete" | "error">("idle");
+  const [waveform, setWaveform] = useState<number[]>([]);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
   const { user, loading } = useAuth();
@@ -24,15 +27,33 @@ export default function StudioPage() {
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFile(event.target.files?.[0] ?? null);
+    setGenerated(false);
+    setImageUrl(null);
+    setWaveform([]);
   };
 
   const onGenerate = async () => {
-    if (file) {
-      const uploaded = await uploadAudio(file);
-      const result = await generateArtwork(uploaded.uploadId);
-      setImageUrl(result.imageUrl);  // ← 追加
+    if (!file || generationPhase === "loading" || generationPhase === "complete") {
+      return;
     }
-    setGenerated(true);
+
+    setGenerationPhase("loading");
+    setGenerated(false);
+    setImageUrl(null);
+
+    try {
+      const uploaded = await uploadAudio(file);
+      setWaveform(uploaded.waveform);
+      const result = await generateArtwork(uploaded.uploadId);
+      setGenerationPhase("complete");
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      setImageUrl(result.imageUrl);
+      setGenerated(true);
+      setGenerationPhase("idle");
+    } catch (error) {
+      console.error("Artwork generation failed", error);
+      setGenerationPhase("error");
+    }
   };
 
   return (
@@ -83,7 +104,7 @@ export default function StudioPage() {
                     <i className="fa-solid fa-play" />
                   </div>
 
-                  <button className="generate-btn" onClick={onGenerate}>
+                  <button className="generate-btn" onClick={onGenerate} disabled={generationPhase !== "idle"}>
                     Start Generating
                   </button>
 
@@ -184,6 +205,15 @@ export default function StudioPage() {
         onSignupSuccess={() => setSignupOpen(false)}
       />
       <SvgFilters />
+
+      {generationPhase !== "idle" && file && (
+        <GenerationOverlay
+          fileName={file.name}
+          phase={generationPhase}
+          waveform={waveform}
+          onRetry={onGenerate}
+        />
+      )}
     </>
   );
 }
