@@ -64,7 +64,27 @@ function analyzeAudio(rawData: Float32Array) {
   };
 }
 
-export type AudioUploadResult = { uploadId: string };
+function createWaveformSamples(rawData: Float32Array, sampleCount = 84) {
+  const samples: number[] = [];
+  const bucketSize = Math.max(1, Math.floor(rawData.length / sampleCount));
+
+  for (let index = 0; index < sampleCount; index++) {
+    const start = index * bucketSize;
+    const end = Math.min(rawData.length, start + bucketSize);
+    let peak = 0;
+
+    for (let cursor = start; cursor < end; cursor++) {
+      peak = Math.max(peak, Math.abs(rawData[cursor]));
+    }
+
+    samples.push(peak);
+  }
+
+  const highestPeak = Math.max(...samples, 0.01);
+  return samples.map((sample) => Math.min(1, sample / highestPeak));
+}
+
+export type AudioUploadResult = { uploadId: string; waveform: number[] };
 export type ArtworkResult    = { artworkId: string; imageUrl: string };
 export type LoginResult      = { userId: string };
 
@@ -80,7 +100,7 @@ export async function uploadAudio(file: File): Promise<AudioUploadResult> {
   const analysisJson = JSON.stringify(analyzeAudio(rawData));
   const uploadId     = crypto.randomUUID();
   analysisStore.set(uploadId, analysisJson);
-  return { uploadId };
+  return { uploadId, waveform: createWaveformSamples(rawData) };
 }
 
 export async function generateArtwork(uploadId: string): Promise<ArtworkResult> {
