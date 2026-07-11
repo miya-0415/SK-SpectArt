@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArtworkCard } from "@/components/ArtworkCard";
 import { Header } from "@/components/Header";
-import { PageStyle } from "@/components/PageStyle";
+import "@/styles/my-art.css";
 
 const artworks = [
   { title: "Moonlight Echo", date: "2026.06.17" },
@@ -20,7 +20,6 @@ export default function MyArtPage() {
 
   return (
     <>
-      <PageStyle href="/styles/my-art.css" />
       <Header />
 
       <main className="gallery-page">

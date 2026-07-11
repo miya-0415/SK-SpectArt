@@ -1,0 +1,550 @@
+/* ==========================================
+   1. 画面全体の基本設定
+   ========================================== */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background: #F5F5F5;
+    color: #0F2F33;
+    font-family: "EB Garamond", serif;
+}
+
+/* ==========================================
+   2. ナビゲーション & グローバル
+   ========================================== */
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    padding: 20px 40px;
+
+    z-index: 1000;
+
+    background-color: rgba(15, 47, 51, 0.5);
+
+    box-sizing: border-box;
+}
+
+nav .logo img {
+    display: block;
+    width: 180px;
+    height: auto;
+}
+
+.hamburger {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+
+    color: #F1E7D0;
+
+    display: flex;
+}
+
+/* --- ハンバーガーのアニメーション --- */
+.hamburger svg {
+    width: 30px;
+    height: 24px;
+}
+
+.hamburger rect {
+    transition: transform 0.3s, opacity 0.3s;
+
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.hamburger.active .bar-top {
+    transform: translateY(11px) rotate(45deg);
+}
+
+.hamburger.active .bar-mid {
+    opacity: 0;
+}
+
+.hamburger.active .bar-bot {
+    transform: translateY(-11px) rotate(-45deg);
+}
+
+/* --- 全画面メニューのスタイル --- */
+.nav-menu {
+    position: fixed;
+    inset: 0;
+
+    background-color: rgba(15, 47, 51, 0.95);
+
+    z-index: 500;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    opacity: 0;
+    pointer-events: none;
+
+    transition: opacity 0.5s ease;
+}
+
+.nav-menu.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.nav-menu ul {
+    list-style: none;
+
+    padding: 0;
+
+    text-align: center;
+}
+
+.nav-menu ul li {
+    margin: 20px 0;
+}
+
+.nav-menu ul li a {
+    font-family: "EB Garamond", serif;
+    font-size: 2.5rem;
+
+    color: #f1e7d0;
+
+    text-decoration: none;
+    letter-spacing: 0.1em;
+
+    transition: color 0.3s;
+}
+
+.nav-menu ul li a:hover {
+    color: #9b8b13;
+}
+
+
+/* ==========================================
+   Main Layout
+========================================== */
+
+.edit-layout {
+    display: flex;
+
+    margin-top: 90px;
+
+    min-height: calc(100vh - 90px);
+}
+
+
+/* ==========================================
+   Preview Panel
+========================================== */
+
+.preview-panel {
+    position: sticky;
+
+    top: 90px;
+
+    width: 50%;
+    height: calc(100vh - 90px);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 40px;
+}
+
+.preview-container {
+    width: 100%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.artwork-preview {
+    position: relative;
+}
+
+#preview-image {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    display: block;
+
+    box-shadow:
+        0 0 0 1px #D8D8D8,
+        0 12px 30px rgba(0, 0, 0, .15);
+}
+
+/* ==========================================
+   Print Guide
+========================================== */
+
+.print-guide {
+    display: none;
+
+    position: absolute;
+
+    top: 40px;
+    left: 40px;
+    right: 40px;
+    bottom: 40px;
+
+    border: 2px dashed rgba(255, 255, 255, .8);
+
+    pointer-events: none;
+}
+
+
+/* ==========================================
+   Layout Preset
+========================================== */
+
+.layout-border {
+    padding: 30px;
+
+    background: #ffffff;
+}
+
+.layout-frame {
+    padding: 20px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 0 8px #D8CFC3,
+        0 0 0 16px #F5F1EB,
+        0 12px 30px rgba(0, 0, 0, .2);
+}
+
+/* ==========================================
+   Preview Text
+========================================== */
+
+#preview-title {
+    position: absolute;
+
+    top: 40px;
+    left: 40px;
+
+    color: #ffffff;
+
+    font-size: 2.4rem;
+    font-weight: 600;
+
+    text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+
+#preview-date {
+    position: absolute;
+
+    bottom: 70px;
+    left: 40px;
+
+    color: #ffffff;
+
+    font-size: 1rem;
+
+    text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+
+#preview-message {
+    position: absolute;
+
+    bottom: 40px;
+    left: 40px;
+
+    color: #ffffff;
+
+    font-size: 1.2rem;
+
+    text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+
+#preview-title,
+#preview-date,
+#preview-message {
+    user-select: none;
+    line-height: 1;
+}
+
+
+/* ==========================================
+   Control Panel
+========================================== */
+
+.control-panel {
+    width: 50%;
+
+    padding: 60px 60px 120px;
+
+    overflow-y: auto;
+}
+
+.control-group {
+    margin-bottom: 40px;
+}
+
+.group-title {
+    font-size: 2rem;
+
+    color: #0F2F33;
+
+    margin-bottom: 16px;
+}
+
+/* ==========================================
+   Preset Size
+========================================== */
+
+#artwork-stage {
+    position: relative;
+    margin: auto;
+    flex-shrink: 0;
+}
+
+.preset-pc {
+    width: 600px;
+    aspect-ratio: 16 / 9;
+}
+
+.preset-phone {
+    width: 280px;
+    aspect-ratio: 9 / 16;
+}
+
+.preset-square {
+    width: 420px;
+    aspect-ratio: 1 / 1;
+}
+
+.preset-a4 {
+    width: 350px;
+    aspect-ratio: 210 / 297;
+}
+
+.preset-a3 {
+    width: 420px;
+    aspect-ratio: 297 / 420;
+}
+
+/* ==========================================
+   Input
+========================================== */
+
+.control-panel input,
+.control-panel textarea,
+.control-panel select {
+    width: 100%;
+
+    border: 1px solid #D8CFC3;
+    border-radius: 8px;
+
+    padding: 14px 16px;
+
+    font-size: 1rem;
+
+    background: #ffffff;
+}
+
+.control-panel textarea {
+    height: 120px;
+
+    resize: none;
+}
+
+
+/* ==========================================
+   Font
+========================================== */
+
+.font-options {
+    display: flex;
+    gap: 12px;
+}
+
+.font-btn {
+    width: 50px;
+    height: 50px;
+
+    border: 1px solid #0F2F33;
+    border-radius: 6px;
+
+    background: #ffffff;
+
+    cursor: pointer;
+
+    font-size: 1.5rem;
+}
+
+.font-serif {
+    font-family: "EB Garamond", serif;
+}
+
+.font-modern {
+    font-family: "Montserrat", sans-serif;
+}
+
+.font-script {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+}
+
+.font-signature {
+    font-family: "Great Vibes", cursive;
+}
+
+
+/* ==========================================
+   Font Size
+========================================== */
+
+.size-options {
+    display: flex;
+    gap: 12px;
+}
+
+.size-options button {
+    width: 60px;
+    height: 50px;
+
+    border: 1px solid #0F2F33;
+    border-radius: 6px;
+
+    background: #ffffff;
+
+    cursor: pointer;
+}
+
+
+/* ==========================================
+   Color
+========================================== */
+
+.color-options {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 12px;
+}
+
+.color-chip {
+    width: 42px;
+    height: 42px;
+
+    border: 2px solid #dddddd;
+
+    cursor: pointer;
+}
+
+.ivory {
+    background: #F5F1EB;
+}
+
+.charcoal {
+    background: #3B3B3B;
+}
+
+.gold {
+    background: #A89609;
+}
+
+.navy {
+    background: #233D4D;
+}
+
+.sage {
+    background: #73877B;
+}
+
+.rose {
+    background: #B68B8B;
+}
+
+
+/* ==========================================
+   Print Guide
+========================================== */
+
+.checkbox-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1rem;
+}
+
+
+/* ==========================================
+   Action Buttons
+========================================== */
+
+.action-area {
+    display: flex;
+    flex-direction: column;
+
+    gap: 16px;
+
+    margin-top: 60px;
+}
+
+.reset-btn,
+.save-btn,
+.download-png-btn,
+.download-jpg-btn,
+.download-pdf-btn {
+    height: 56px;
+
+    border: none;
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 1rem;
+}
+
+.reset-btn {
+    background: #dddddd;
+}
+
+.save-btn {
+    background: #A89609;
+    color: #ffffff;
+}
+
+.download-btn {
+    background: #0F2F33;
+    color: #ffffff;
+}
+
+
+/* ==========================================
+   Responsive
+========================================== */
+
+@media (max-width: 1024px) {
+
+    .edit-layout {
+        flex-direction: column;
+    }
+
+    .preview-panel {
+        position: relative;
+
+        width: 100%;
+        height: auto;
+    }
+
+    .control-panel {
+        width: 100%;
+    }
+
+}

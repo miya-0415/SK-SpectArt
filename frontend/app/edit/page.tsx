@@ -4,9 +4,9 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButtons } from "@/components/ActionButtons";
 import { Header } from "@/components/Header";
-import { PageStyle } from "@/components/PageStyle";
 import { PreviewPanel } from "@/components/PreviewPanel";
 import { saveArtwork } from "@/lib/api";
+import "@/styles/edit.css";
 
 
 const presetClasses: Record<string, string> = {
@@ -151,7 +151,6 @@ export default function EditPage() {
 
   return (
     <>
-      <PageStyle href="/styles/edit.css" />
       <Header />
 
       <main className="edit-layout">
