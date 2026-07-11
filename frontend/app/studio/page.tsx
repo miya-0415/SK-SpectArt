@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
 import { Header } from "@/components/Header";
 import { LoginModal } from "@/components/LoginModal";
-import { PageStyle } from "@/components/PageStyle";
 import { SignupModal } from "@/components/SignupModal";
 import { SvgFilters } from "@/components/SvgFilters";
 import { useAuth } from "@/context/AuthContext";
 import { generateArtwork, uploadAudio } from "@/lib/api";
+import "@/styles/studio.css";
 
 export default function StudioPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -37,7 +37,6 @@ export default function StudioPage() {
 
   return (
     <>
-      <PageStyle href="/styles/studio.css" />
       <Header />
 
       <main>

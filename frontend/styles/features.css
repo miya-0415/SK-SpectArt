@@ -1,0 +1,152 @@
+/* 見出し（機能 →） */
+.right h2 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #555;
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.right i {
+  color: #777;
+}
+
+/* =========================
+   セクション構造
+========================= */
+.sec {
+  height: auto;              
+  flex-direction: column;    
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 20px;
+  margin-top: 80px;
+}
+
+/* タイトル部分 */
+.sb-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.sb-title h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0;
+}
+
+.jp-sub {
+  font-size: 0.8rem;
+  color: #0f2f33;
+  opacity: 0.5;
+  margin: 0 0;
+}
+
+/* =========================
+   説明テキスト
+========================= */
+.sec p {
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: #444;
+  text-align: center;
+}
+
+/* =========================
+   画像カード（メイン）
+========================= */
+.sec img {
+  width: 100%;
+  max-width: 320px;
+
+  border-radius: 20px;
+  background: #fff;
+  padding: 30px;
+
+  box-shadow: 
+    0 10px 30px rgba(0,0,0,0.05),
+    0 1px 2px rgba(0,0,0,0.05);
+
+  margin-top: 10px;
+}
+
+/* 画像を中央寄せにしたい場合 */
+.sec div:last-child {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.scrollbar,
+.scrollbar-text {
+  position: fixed;
+}
+
+/* テキスト */
+.scrollbar-text {
+  right: 30px;
+  bottom: 140px;
+  color: #f3a68c;
+  font-size: 14px;
+  font-family: serif;
+  letter-spacing: 0.2em;
+  writing-mode: vertical-lr;
+}
+
+/* バー */
+.scrollbar {
+  right: 40px;
+  bottom: 40px;
+}
+
+/* 線 */
+.scrollbar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 100px;
+  background: #f3a68c;
+}
+
+/* 丸アニメーション */
+.scrollbar::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f3a68c;
+  animation: circlemove 3s ease-in-out infinite,
+             cirlemovehide 3s ease-out infinite;
+}
+
+@keyframes circlemove {
+  0% {
+    bottom: 95px;
+  }
+  100% {
+    bottom: 0px;
+  }
+}
+
+@keyframes cirlemovehide {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}

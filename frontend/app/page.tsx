@@ -1,13 +1,11 @@
 import { BackgroundLayers } from "@/components/BackgroundLayers";
-import { PageStyle } from "@/components/PageStyle";
 import { StartButton } from "@/components/StartButton";
 import { SvgFilters } from "@/components/SvgFilters";
+import "@/styles/index.css";
 
 export default function HomePage() {
   return (
     <>
-      <PageStyle href="/styles/index.css" />
-
       <BackgroundLayers />
 
       <main className="main-wrap">
