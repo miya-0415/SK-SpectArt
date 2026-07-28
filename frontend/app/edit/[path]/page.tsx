@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { ActionButtons } from "@/components/ActionButtons";
 import { Header } from "@/components/Header";
 import { PreviewPanel } from "@/components/PreviewPanel";
@@ -42,6 +42,17 @@ const sizes: Record<string, { title: string; text: string }> = {
 };
 
 export default function EditPage() {
+  const params = useParams();
+  const artworkId = (params?.path as string) || "mock-artwork-id";
+  const [imageUrl, setImageUrl] = useState<string>("/image/generated-sample.png");
+
+  useEffect(() => {
+    const savedImage = sessionStorage.getItem("generated_artwork_image");
+    if (savedImage) {
+      setImageUrl(savedImage);
+    }
+  }, []);
+
   const [artworkName, setArtworkName] = useState("");
   const [artworkDate, setArtworkDate] = useState("");
   const [artworkMessage, setArtworkMessage] = useState("");
@@ -145,7 +156,7 @@ export default function EditPage() {
   };
 
   const save = async () => {
-    await saveArtwork("mock-artwork-id");
+    await saveArtwork(artworkId);
     router.push("/my-art");
   };
 
@@ -155,6 +166,7 @@ export default function EditPage() {
 
       <main className="edit-layout">
         <PreviewPanel
+          imageUrl={imageUrl}
           presetClass={presetClasses[preset]}
           layoutClass={layoutClasses[layout]}
           title={previewTitle}

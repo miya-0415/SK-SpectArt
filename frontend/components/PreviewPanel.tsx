@@ -15,6 +15,7 @@ type PreviewPanelProps = {
   onTitleDragStart: (event: React.MouseEvent) => void;
   onDateDragStart: (event: React.MouseEvent) => void;
   onMessageDragStart: (event: React.MouseEvent) => void;
+  imageUrl?: string;
 };
 
 export function PreviewPanel({
@@ -34,12 +35,13 @@ export function PreviewPanel({
   onTitleDragStart,
   onDateDragStart,
   onMessageDragStart,
+  imageUrl,
 }: PreviewPanelProps) {
   return (
     <section className="preview-panel">
       <div className="preview-container">
         <div className={`artwork-preview ${presetClass} ${layoutClass}`} id="artwork-stage">
-          <img src="/image/generated-sample.png" alt="Generated Artwork" id="preview-image" />
+          <img src={imageUrl || "/image/generated-sample.png"} alt="Generated Artwork" id="preview-image" />
 
           <div className="print-guide" id="print-guide" style={{ display: showPrintGuide ? "block" : "none" }} />
 

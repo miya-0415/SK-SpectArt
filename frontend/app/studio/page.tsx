@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
 import { GenerationOverlay } from "@/components/GenerationOverlay";
@@ -18,7 +18,7 @@ const previewWaveform = Array.from({ length: 84 }, (_, index) => {
   return 0.16 + primaryWave * 0.58 + secondaryWave * 0.24;
 });
 
-export default function StudioPage() {
+function StudioPageContent() {
   const [file, setFile] = useState<File | null>(null);
   const [generated, setGenerated] = useState(false);
   const [generationPhase, setGenerationPhase] = useState<"idle" | "loading" | "complete" | "error">("idle");
@@ -32,11 +32,13 @@ export default function StudioPage() {
 
   // 画像URL
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [artworkId, setArtworkId] = useState<string | null>(null);
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFile(event.target.files?.[0] ?? null);
     setGenerated(false);
     setImageUrl(null);
+    setArtworkId(null);
     setWaveform([]);
   };
 
@@ -56,6 +58,7 @@ export default function StudioPage() {
       setGenerationPhase("complete");
       await new Promise((resolve) => window.setTimeout(resolve, 1000));
       setImageUrl(result.imageUrl);
+      setArtworkId(result.artworkId);
       setGenerated(true);
       setGenerationPhase("idle");
     } catch (error) {
@@ -122,7 +125,7 @@ export default function StudioPage() {
                     Start Generating
                   </button>
 
-                  <button className="delete-btn" id="delate-btn" onClick={() => setFile(null)}>
+                  <button className="delete-btn" id="delate-btn" onClick={() => { setFile(null); setArtworkId(null); }}>
                     Delete
                   </button>
                 </div>
@@ -154,7 +157,16 @@ export default function StudioPage() {
             <div className="member-actions" id="member-actions" style={{ display: user ? "flex" : "none" }}>
               <button className="action-btn">Download</button>
 
-              <button className="action-btn edit-btn" onClick={() => router.push("/edit")}>
+              <button className="action-btn edit-btn" onClick={() => {
+                if (imageUrl) {
+                  try {
+                    sessionStorage.setItem("generated_artwork_image", imageUrl);
+                  } catch (e) {
+                    console.error("sessionStorage setItem failed", e);
+                  }
+                }
+                router.push(`/edit/${artworkId || "draft"}`);
+              }}>
                 Edit/Export
               </button>
             </div>
@@ -228,5 +240,13 @@ export default function StudioPage() {
         />
       )}
     </>
+  );
+}
+
+export default function StudioPage() {
+  return (
+    <Suspense fallback={null}>
+      <StudioPageContent />
+    </Suspense>
   );
 }

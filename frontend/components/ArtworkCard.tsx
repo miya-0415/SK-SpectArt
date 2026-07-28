@@ -25,7 +25,7 @@ export function ArtworkCard({ title, date, onView }: ArtworkCardProps) {
             View
           </button>
 
-          <button className="edit-btn" onClick={() => router.push("/edit")}>
+          <button className="edit-btn" onClick={() => router.push(`/edit/${encodeURIComponent(title)}`)}>
             Edit
           </button>
         </div>
