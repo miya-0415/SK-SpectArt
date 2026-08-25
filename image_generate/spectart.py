@@ -27,17 +27,7 @@ FAL_KEY = os.getenv("FAL_KEY")
 FAL_STEPS = int(os.getenv("FAL_STEPS", "28"))
 FAL_GUIDANCE = float(os.getenv("FAL_GUIDANCE", "2.5"))
 
-# プロンプト案の切り替え
-#   "1" … 水彩画が主役（線感を強める前の版）
-#   "2" … 線が主役で水彩はアクセント
-PROMPT_VARIANT = os.getenv("PROMPT_VARIANT", "1")
 
-# 指標レンジの較正。
-#   "0"（既定）… 従来のレンジ
-#   "1"        … 手元の音声データの実測分布に合わせたレンジ
-# 従来のレンジは実測に対して広すぎ、brightness / dynamics / sparseness /
-# rhythmicity が低い側に張り付いて、曲を変えても同じ分岐にしか落ちなかった。
-CALIBRATED = os.getenv("CALIBRATED", "0") == "1"
 
 # プロンプト生成関数
 def create_prompt(output):
@@ -91,19 +81,14 @@ def create_prompt(output):
             """0〜1 の指標を中央寄りに圧縮する"""
             return 0.5 + (value - 0.5) * VARIATION
 
-        # 指標のレンジ。CALIBRATED=1 で実測分布に合わせた値に切り替わる。
-        if CALIBRATED:
-            ZC_RANGE   = (0.015, 0.085)   # 実測 avg_zc ≒ 0.015〜0.08
-            DYN_RANGE  = (0.35, 0.90)     # 実測 ≒ 0.37〜0.83
-            SIL_RANGE  = (0.04, 0.12)     # 実測 silenceRatio ≒ 0.047〜0.104
-            PEAK_RANGE = (8, 34)          # 実測 energyPeaks ≒ 10〜31
-            ARC_RATIO  = 1.08             # 1.3 では全曲 flat になる
-        else:
-            ZC_RANGE   = (0.02, 0.30)
-            DYN_RANGE  = (0.3, 2.5)
-            SIL_RANGE  = None             # silence_ratio * 2.0 をそのまま使う
-            PEAK_RANGE = (5, 55)
-            ARC_RATIO  = 1.3
+        # 指標のレンジは手元の音声データの実測分布に合わせてある。
+        # 広すぎるレンジだと brightness / dynamics / sparseness / rhythmicity が
+        # 低い側に張り付き、曲を変えても同じ分岐にしか落ちなかった。
+        ZC_RANGE   = (0.015, 0.085)   # 実測 avg_zc ≒ 0.015〜0.08
+        DYN_RANGE  = (0.35, 0.90)     # 実測 ≒ 0.37〜0.83
+        SIL_RANGE  = (0.04, 0.12)     # 実測 silenceRatio ≒ 0.047〜0.104
+        PEAK_RANGE = (8, 34)          # 実測 energyPeaks ≒ 10〜31
+        ARC_RATIO  = 1.08             # 1.3 では全曲 flat になる
 
         # 音圧（実測 rms は 0.03〜0.35 程度）
         energy = norm(rms, 0.02, 0.30)
@@ -133,11 +118,7 @@ def create_prompt(output):
         rhythmicity = temper(norm(energy_peaks, *PEAK_RANGE) * 0.6 + dynamics * 0.4)
 
         # 静けさ（silenceRatio はもともと 0〜1 なのでそのまま使える）
-        sparseness = temper(
-            min(1.0, silence_ratio * 2.0)
-            if SIL_RANGE is None
-            else norm(silence_ratio, *SIL_RANGE)
-        )
+        sparseness = temper(norm(silence_ratio, *SIL_RANGE))
 
         # 起伏の大きさ＝密度。音圧とダイナミクスの合成
         intensity = temper(min(1.0, energy * 0.6 + dynamics * 0.4))
@@ -240,17 +221,7 @@ def create_prompt(output):
         # ただし骨格ごと別物にすると同じシリーズに見えなくなるため、
         # どの分岐も「中央の丸い塊」を土台に、性格づけだけを変える。
         # =====================================
-        # 案2は参考画像に合わせ「閉じた輪」ではなく
-        # 「中心から外へ伸びる長い一筆の弧」を骨格にする。
-        BASE_FORMS = {
-            "1": "a loose round cluster of overlapping circular brush loops in the middle of the paper",
-            "2": (
-                "long sweeping brush arcs and open partial circles radiating outward "
-                "from a dense tangled knot at the centre of the paper, "
-                "the arcs growing longer, thinner and more separated toward the edges"
-            ),
-        }
-        base_form = BASE_FORMS[PROMPT_VARIANT]
+        base_form = "a loose round cluster of overlapping circular brush loops in the middle of the paper"
 
         if sparseness > 0.62 and intensity < 0.45:
             # 静寂が多く音圧も低い → 塊がほどけて散りぎみ
@@ -303,78 +274,40 @@ def create_prompt(output):
         else:
             sharp_key = "low"
 
-        # 案2は参考画像に合わせ、閉じた輪ではなく長い開いた弧で構成する。
         STRUCTURES = {
-            "1": {
-                "high": (
-                    "many overlapping circular brush loops and incomplete rings, "
-                    "tangled crescent arcs painted in one stroke, "
-                    "energetic scattered ink splatter across the paper"
-                ),
-                "mid": (
-                    "overlapping circular brush loops and open rings, "
-                    "layered crescent arcs curving back on themselves, "
-                    "moderate tangle of hand-painted curves"
-                ),
-                "low": (
-                    "a few large open circular brush loops, "
-                    "gentle sparse crescent arcs, "
-                    "minimal delicate hand-painted linework"
-                ),
-            },
-            "2": {
-                "high": (
-                    "many long overlapping brush arcs crossing each other, "
-                    "broad ribbon-like sweeps tangled with finer curves, "
-                    "energetic scattered colourful splatter across the paper"
-                ),
-                "mid": (
-                    "layered long brush arcs and open crescents sweeping past one another, "
-                    "wide arcs and slender arcs mixed together, "
-                    "a moderate tangle of curved colour"
-                ),
-                "low": (
-                    "a few very long sweeping brush arcs, "
-                    "wide gentle crescents drawn in a single stroke, "
-                    "generous open shapes of solid colour"
-                ),
-            },
+            "high": (
+                "many overlapping circular brush loops and incomplete rings, "
+                "tangled crescent arcs painted in one stroke, "
+                "energetic scattered ink splatter across the paper"
+            ),
+            "mid": (
+                "overlapping circular brush loops and open rings, "
+                "layered crescent arcs curving back on themselves, "
+                "moderate tangle of hand-painted curves"
+            ),
+            "low": (
+                "a few large open circular brush loops, "
+                "gentle sparse crescent arcs, "
+                "minimal delicate hand-painted linework"
+            ),
         }
-        structure = STRUCTURES[PROMPT_VARIANT][sharp_key]
+        structure = STRUCTURES[sharp_key]
 
-        # 線そのものの描写。
-        # 案1は輪郭をぼかして塗り寄り、案2は輪郭を残して線を立たせる。
         LINE_STYLES = {
-            "1": {
-                "high": (
-                    "loaded round brush strokes with dry-brush edges, "
-                    "confident hand-painted curves of uneven width"
-                ),
-                "mid": (
-                    "smooth wet brush strokes with varied width, "
-                    "graceful sweeping curved marks, soft blurred edges"
-                ),
-                "low": (
-                    "thin crisp brush lines, "
-                    "pale strokes with clean ends"
-                ),
-            },
-            "2": {
-                "high": (
-                    "fast confident round brush strokes with dry-brush breaks, "
-                    "curves swelling wide and thinning away along their length"
-                ),
-                "mid": (
-                    "smooth flowing brush strokes ranging from broad to fine, "
-                    "graceful sweeping curves of solid glowing colour"
-                ),
-                "low": (
-                    "a few broad calm brush sweeps trailing into fine tapered tails, "
-                    "generous open curves of solid luminous colour"
-                ),
-            },
+            "high": (
+                "loaded round brush strokes with dry-brush edges, "
+                "confident hand-painted curves of uneven width"
+            ),
+            "mid": (
+                "smooth wet brush strokes with varied width, "
+                "graceful sweeping curved marks, soft blurred edges"
+            ),
+            "low": (
+                "thin crisp brush lines, "
+                "pale strokes with clean ends"
+            ),
         }
-        line_style = LINE_STYLES[PROMPT_VARIANT][sharp_key]
+        line_style = LINE_STYLES[sharp_key]
 
         # =====================================
         # 密度（intensity）
@@ -500,18 +433,9 @@ def create_prompt(output):
         if impulsiveness > 0.5:
             texture = "flicked ink splatter clusters, spray of tiny paint droplets around the loops"
         elif sparseness > 0.6:
-            # 案2は滲みを「面」ではなく「線の端に溜まるもの」に寄せる
-            texture = (
-                "small solid dots of paint at the ends of the strokes"
-                if PROMPT_VARIANT == "2"
-                else "clean tapered stroke ends"
-            )
+            texture = "clean tapered stroke ends"
         elif rhythmicity > 0.5:
-            texture = (
-                "lines darkening into deeper tones where they cross and overlap"
-                if PROMPT_VARIANT == "2"
-                else "strokes overlapping into solid darker tones where they cross"
-            )
+            texture = "strokes overlapping into solid darker tones where they cross"
         elif percussiveness > 0.6:
             texture = "decisive loaded brushstrokes with dry-brush breaks and hard edges"
         else:
@@ -523,33 +447,6 @@ def create_prompt(output):
                 "flat overlapping colour",
                 "dry-brush texture breaking up the stroke"
             ])
-
-        # =====================================
-        # 語彙の統一（案2のみ）
-        # =====================================
-        # 案2の骨格は「閉じた輪(loops)」ではなく「開いた弧(arcs)」。
-        # composition / density / movement / rhythm / space は
-        # 両案で文言を共有しているため、ここで語彙だけ差し替えて
-        # プロンプト内で形の指示が食い違わないようにする。
-        if PROMPT_VARIANT == "2":
-            def to_plan2_vocab(text):
-                # 「輪」→「弧」、「墨」→「絵の具」。
-                # ink のままだと黒一色のペン画に寄ってしまうため。
-                return (
-                    text.replace("loops", "arcs")
-                        .replace("loop", "arc")
-                        .replace("ink strokes", "paint strokes")
-                        .replace("ink splatter", "colourful splatter")
-                        .replace("ink dots", "colourful dots")
-                )
-
-            composition = to_plan2_vocab(composition)
-            density     = to_plan2_vocab(density)
-            movement    = to_plan2_vocab(movement)
-            rhythm      = to_plan2_vocab(rhythm)
-            space       = to_plan2_vocab(space)
-            freq_char   = to_plan2_vocab(freq_char)
-            texture     = to_plan2_vocab(texture)
 
         # =====================================
         # スタイル
@@ -566,24 +463,15 @@ def create_prompt(output):
             style_key = "default"
 
         # プロンプト先頭に置かれる語。FLUX は前方ほど強く効くため、
-        # ここが「水彩画か線画か」を決定づける。
+        # ここが作風を決定づける。
         STYLES = {
-            "1": {
-                "calm":      "quiet meditative minimal abstract painting",
-                "violent":   "violent explosive abstract painting in ink and opaque matte paint",
-                "energetic": "energetic expressive abstract painting in opaque matte paint and ink",
-                "sparse":    "sparse delicate abstract painted study",
-                "default":   "abstract painting in opaque matte paint and ink",
-            },
-            "2": {
-                "calm":      "quiet meditative abstract painting built from long colourful brush strokes",
-                "violent":   "vivid explosive abstract painting built from long colourful brush strokes",
-                "energetic": "energetic radiant abstract painting built from long colourful brush strokes",
-                "sparse":    "delicate luminous abstract painted study built from long colourful brush strokes",
-                "default":   "colourful abstract painting built from long sweeping brush strokes",
-            },
+            "calm":      "quiet meditative minimal abstract painting",
+            "violent":   "violent explosive abstract painting in ink and opaque matte paint",
+            "energetic": "energetic expressive abstract painting in opaque matte paint and ink",
+            "sparse":    "sparse delicate abstract painted study",
+            "default":   "abstract painting in opaque matte paint and ink",
         }
-        style = STYLES[PROMPT_VARIANT][style_key]
+        style = STYLES[style_key]
 
         # =====================================
         # 画面占有率
@@ -597,80 +485,36 @@ def create_prompt(output):
         else:
             scale_key = "small"
 
-        # 案2は参考画像に合わせ、密なときでも余白を必ず残す
-        # （"filling the frame" は仕上げの「広い余白」指示と矛盾するため使わない）
         SCALES = {
-            "1": {
-                "large":  "large scale artwork filling the frame, not a small drawing on empty paper",
-                "medium": "artwork occupying most of the frame with clear margins",
-                "small":  "artwork occupying the centre of the frame with generous margins",
-            },
-            "2": {
-                "large":  "large scale artwork with the arcs reaching wide, still leaving clear bare margins",
-                "medium": "artwork occupying most of the frame with clear margins",
-                "small":  "artwork occupying the centre of the frame with generous margins",
-            },
+            "large":  "large scale artwork filling the frame, not a small drawing on empty paper",
+            "medium": "artwork occupying most of the frame with clear margins",
+            "small":  "artwork occupying the centre of the frame with generous margins",
         }
-        scale = SCALES[PROMPT_VARIANT][scale_key]
+        scale = SCALES[scale_key]
 
         # =====================================
         # 最終プロンプト
         # =====================================
         # 画材・支持体を最優先で指定し、次に構図・データ由来の特徴を並べる。
         # （FLUX は前方の語ほど強く効くため）
-        # 案ごとに違うのは「画材の主従」「色の載り方」「仕上げ」「否定指定」の4箇所。
-        # データ由来の要素（構図・密度・動き…）は両案で共通に流し込む。
-        if PROMPT_VARIANT == "2":
-            medium = (
-                "painted with a loaded round brush and thick opaque matte paint, "
-                "long sweeping brush strokes are the main element, "
-                "strokes of strongly varying width, from broad ribbon-like sweeps "
-                "to fine tapering hairlines, "
-                "on a smooth flat ground, "
-                "plain off-white background, "
-            )
-            colour_note = (
-                "every stroke a different luminous colour, "
-                "richly multicoloured, saturated and glowing"
-            )
-            line_note = "each sweep reading as one confident continuous stroke, "
-            finish = (
-                "a few flat blocks of colour behind the strokes, "
-                "colours overlapping with clean edges where they cross, "
-                "fine scattered splatter dots in many bright colours, "
-                "a wide margin of bare untouched off-white ground around the artwork, "
-                "flat bare ground around the strokes, "
-                "matte opaque paint, bold and graphic, fine art gallery piece, "
-            )
-            # 骨格自体が radiating なので "no sharp radiating spikes" は外す。
-            # 代わりに「黒い細線だけの落書き」に寄らないよう明示的に否定する。
-            negative = (
-                "not vector art, not digital illustration, "
-                "not a monochrome pen drawing, not black ink only, "
-                "no thin scratchy scribbles, not uniformly thin lines, "
-                "not a formless colour blob, "
-                "not watercolour, no colour washes, no wet bleeding, "
-                "no soft blurred edges, no visible paper texture"
-            )
-        else:
-            medium = (
-                "hand painted with opaque matte paint and solid ink using a loaded round brush "
-                "on a smooth flat ground, "
-                "plain off-white background, "
-            )
-            colour_note = "these colours kept distinct and unblended"
-            line_note = ""
-            finish = (
-                "layered flat colour with clean hard edges, "
-                "sharp flicked splatter, "
-                "flat bare ground visible between the strokes, "
-                "matte opaque paint, graphic and painterly, non-representational fine art, "
-            )
-            negative = (
-                "not vector art, not digital illustration, no sharp radiating spikes, "
-                "not watercolour, no colour washes, no wet bleeding, "
-                "no soft blurred edges, no visible paper texture"
-            )
+        medium = (
+            "hand painted with opaque matte paint and solid ink using a loaded round brush "
+            "on a smooth flat ground, "
+            "plain off-white background, "
+        )
+        colour_note = "these colours kept distinct and unblended"
+        finish = (
+            "layered flat colour with clean hard edges, "
+            "sharp flicked splatter, "
+            "flat bare ground visible between the strokes, "
+            "matte opaque paint, graphic and painterly, non-representational fine art, "
+        )
+        # 水彩寄りに振れないよう明示的に否定する
+        negative = (
+            "not vector art, not digital illustration, no sharp radiating spikes, "
+            "not watercolour, no colour washes, no wet bleeding, "
+            "no soft blurred edges, no visible paper texture"
+        )
 
         prompt = (
             f"{style}, "
@@ -680,7 +524,6 @@ def create_prompt(output):
             f"{composition}, "
             f"{structure}, "
             f"{line_style}, "
-            f"{line_note}"
             f"{density}, "
             f"{movement}, "
             f"{rhythm}, "
@@ -698,15 +541,14 @@ def create_prompt(output):
 
         number = len(os.listdir("./prompts"))
 
-        # どちらの案で生成したか後から追えるようにファイル名へ残す
         with open(
-            f"./prompts/prompt_{number}_v{PROMPT_VARIANT}.txt",
+            f"./prompts/prompt_{number}.txt",
             "w",
             encoding="utf-8"
         ) as f:
             f.write(prompt)
 
-        print(f"生成プロンプト(案{PROMPT_VARIANT}):", prompt)
+        print("生成プロンプト:", prompt)
 
         # シードはプロンプト本文ではなく API パラメータとして渡す
         return prompt, seed % (2 ** 31)
