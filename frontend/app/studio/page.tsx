@@ -1,48 +1,80 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { ChangeEvent, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
+import { GenerationOverlay } from "@/components/GenerationOverlay";
 import { Header } from "@/components/Header";
 import { LoginModal } from "@/components/LoginModal";
-import { PageStyle } from "@/components/PageStyle";
 import { SignupModal } from "@/components/SignupModal";
 import { SvgFilters } from "@/components/SvgFilters";
-import { generateArtwork, login, uploadAudio } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { generateArtwork, uploadAudio } from "@/lib/api";
+import "@/styles/studio.css";
 
-export default function StudioPage() {
+const previewWaveform = Array.from({ length: 84 }, (_, index) => {
+  const primaryWave = Math.abs(Math.sin(index * 0.43));
+  const secondaryWave = Math.abs(Math.sin(index * 0.13 + 1.4));
+  return 0.16 + primaryWave * 0.58 + secondaryWave * 0.24;
+});
+
+function StudioPageContent() {
   const [file, setFile] = useState<File | null>(null);
   const [generated, setGenerated] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [generationPhase, setGenerationPhase] = useState<"idle" | "loading" | "complete" | "error">("idle");
+  const [waveform, setWaveform] = useState<number[]>([]);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isLoadingPreview = searchParams.get("preview") === "loading";
 
   // 画像URL
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [artworkId, setArtworkId] = useState<string | null>(null);
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFile(event.target.files?.[0] ?? null);
+    setGenerated(false);
+    setImageUrl(null);
+    setArtworkId(null);
+    setWaveform([]);
   };
 
   const onGenerate = async () => {
-    if (file) {
-      const uploaded = await uploadAudio(file);
-      const result = await generateArtwork(uploaded.uploadId);
-      setImageUrl(result.imageUrl);  // ← 追加
+    if (!file || generationPhase === "loading" || generationPhase === "complete") {
+      return;
     }
-    setGenerated(true);
+
+    setGenerationPhase("loading");
+    setGenerated(false);
+    setImageUrl(null);
+
+    try {
+      const uploaded = await uploadAudio(file);
+      setWaveform(uploaded.waveform);
+      const result = await generateArtwork(uploaded.uploadId);
+      setGenerationPhase("complete");
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      setImageUrl(result.imageUrl);
+      setArtworkId(result.artworkId);
+      setGenerated(true);
+      setGenerationPhase("idle");
+    } catch (error) {
+      console.error("Artwork generation failed", error);
+      setGenerationPhase("error");
+    }
   };
 
-  const onLogin = async () => {
-    await login("", "");
-    setLoginOpen(false);
-    setLoggedIn(true);
-  };
+  const overlay = isLoadingPreview
+    ? { phase: "loading" as const, waveform: previewWaveform }
+    : generationPhase !== "idle" && file
+      ? { phase: generationPhase, waveform }
+      : null;
 
   return (
     <>
-      <PageStyle href="/styles/studio.css" />
       <Header />
 
       <main>
@@ -89,11 +121,11 @@ export default function StudioPage() {
                     <i className="fa-solid fa-play" />
                   </div>
 
-                  <button className="generate-btn" onClick={onGenerate}>
+                  <button className="generate-btn" onClick={onGenerate} disabled={generationPhase !== "idle"}>
                     Start Generating
                   </button>
 
-                  <button className="delete-btn" id="delate-btn" onClick={() => setFile(null)}>
+                  <button className="delete-btn" id="delate-btn" onClick={() => { setFile(null); setArtworkId(null); }}>
                     Delete
                   </button>
                 </div>
@@ -114,7 +146,7 @@ export default function StudioPage() {
 
             <h2 className="artwork-ready">Your artwork is ready</h2>
 
-            <div id="guest-actions" style={{ display: loggedIn ? "none" : undefined }}>
+            <div id="guest-actions" style={{ display: user || loading ? "none" : undefined }}>
               <p className="login-message">作品を保存・編集するにはログインが必要です</p>
 
               <button className="login-btn" id="open-login" onClick={() => setLoginOpen(true)}>
@@ -122,10 +154,19 @@ export default function StudioPage() {
               </button>
             </div>
 
-            <div className="member-actions" id="member-actions" style={{ display: loggedIn ? "flex" : undefined }}>
+            <div className="member-actions" id="member-actions" style={{ display: user ? "flex" : "none" }}>
               <button className="action-btn">Download</button>
 
-              <button className="action-btn edit-btn" onClick={() => router.push("/edit")}>
+              <button className="action-btn edit-btn" onClick={() => {
+                if (imageUrl) {
+                  try {
+                    sessionStorage.setItem("generated_artwork_image", imageUrl);
+                  } catch (e) {
+                    console.error("sessionStorage setItem failed", e);
+                  }
+                }
+                router.push(`/edit/${artworkId || "draft"}`);
+              }}>
                 Edit/Export
               </button>
             </div>
@@ -178,14 +219,34 @@ export default function StudioPage() {
       <LoginModal
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
-        onLogin={onLogin}
+        onLoginSuccess={() => setLoginOpen(false)}
         onOpenSignup={() => {
           setLoginOpen(false);
           setSignupOpen(true);
         }}
       />
-      <SignupModal open={signupOpen} onClose={() => setSignupOpen(false)} />
+      <SignupModal
+        open={signupOpen}
+        onClose={() => setSignupOpen(false)}
+        onSignupSuccess={() => setSignupOpen(false)}
+      />
       <SvgFilters />
+
+      {overlay && (
+        <GenerationOverlay
+          phase={overlay.phase}
+          waveform={overlay.waveform}
+          onRetry={onGenerate}
+        />
+      )}
     </>
+  );
+}
+
+export default function StudioPage() {
+  return (
+    <Suspense fallback={null}>
+      <StudioPageContent />
+    </Suspense>
   );
 }

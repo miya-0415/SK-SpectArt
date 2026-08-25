@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { ActionButtons } from "@/components/ActionButtons";
 import { Header } from "@/components/Header";
-import { PageStyle } from "@/components/PageStyle";
 import { PreviewPanel } from "@/components/PreviewPanel";
 import { saveArtwork } from "@/lib/api";
+import "@/styles/edit.css";
+
 
 const presetClasses: Record<string, string> = {
   "Wallpaper (PC)": "preset-pc",
@@ -41,6 +42,17 @@ const sizes: Record<string, { title: string; text: string }> = {
 };
 
 export default function EditPage() {
+  const params = useParams();
+  const artworkId = (params?.path as string) || "mock-artwork-id";
+  const [imageUrl, setImageUrl] = useState<string>("/image/generated-sample.png");
+
+  useEffect(() => {
+    const savedImage = sessionStorage.getItem("generated_artwork_image");
+    if (savedImage) {
+      setImageUrl(savedImage);
+    }
+  }, []);
+
   const [artworkName, setArtworkName] = useState("");
   const [artworkDate, setArtworkDate] = useState("");
   const [artworkMessage, setArtworkMessage] = useState("");
@@ -53,6 +65,32 @@ export default function EditPage() {
   const [textColor, setTextColor] = useState("#ffffff");
   const [size, setSize] = useState("M");
   const [showPrintGuide, setShowPrintGuide] = useState(false);
+  type Pos = { x: number; y: number };
+  type DragKey = "title" | "date" | "message";
+  
+  const [titlePos, setTitlePos] = useState<Pos>({ x: 0, y: 0 });
+  const [datePos, setDatePos] = useState<Pos>({ x: 0, y: 0 });
+  const [messagePos, setMessagePos] = useState<Pos>({ x: 0, y: 0 });
+  
+  const dragState = useRef<{
+    key: DragKey;
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+  } | null>(null);
+  
+  const positions: Record<DragKey, Pos> = { title: titlePos, date: datePos, message: messagePos };
+  const setPositions: Record<DragKey, (pos: Pos) => void> = {
+    title: setTitlePos,
+    date: setDatePos,
+    message: setMessagePos,
+  };
+  
   const router = useRouter();
 
   const reset = () => {
@@ -64,18 +102,71 @@ export default function EditPage() {
     setPreviewMessage("");
   };
 
+  const handleDragMove = (event: MouseEvent) => {
+    if (!dragState.current) return;
+    const { key, startX, startY, origX, origY, minX, maxX, minY, maxY } = dragState.current;
+
+    const rawX = origX + (event.clientX - startX);
+    const rawY = origY + (event.clientY - startY);
+
+    setPositions[key]({
+      x: Math.min(Math.max(rawX, minX), maxX),
+      y: Math.min(Math.max(rawY, minY), maxY),
+    });
+  };
+
+  const handleDragEnd = () => {
+    dragState.current = null;
+    window.removeEventListener("mousemove", handleDragMove);
+    window.removeEventListener("mouseup", handleDragEnd);
+  };
+
+  const handleDragStart = (key: DragKey) => (event: React.MouseEvent) => {
+    const origin = positions[key];
+    const element = event.currentTarget as HTMLElement;
+    const stage = element.closest<HTMLElement>("#artwork-stage");
+    if (!stage) return;
+
+    event.preventDefault();
+
+    const stageRect = stage.getBoundingClientRect();
+    const elemRect = element.getBoundingClientRect();
+
+    const naturalLeft = elemRect.left - origin.x;
+    const naturalTop = elemRect.top - origin.y;
+
+    const minX = stageRect.left - naturalLeft;
+    const maxX = stageRect.right - naturalLeft - elemRect.width;
+    const minY = stageRect.top - naturalTop;
+    const maxY = stageRect.bottom - naturalTop - elemRect.height;
+
+    dragState.current = {
+      key,
+      startX: event.clientX,
+      startY: event.clientY,
+      origX: origin.x,
+      origY: origin.y,
+      minX,
+      maxX,
+      minY,
+      maxY,
+    };
+    window.addEventListener("mousemove", handleDragMove);
+    window.addEventListener("mouseup", handleDragEnd);
+  };
+
   const save = async () => {
-    await saveArtwork("mock-artwork-id");
+    await saveArtwork(artworkId);
     router.push("/my-art");
   };
 
   return (
     <>
-      <PageStyle href="/styles/edit.css" />
       <Header />
 
       <main className="edit-layout">
         <PreviewPanel
+          imageUrl={imageUrl}
           presetClass={presetClasses[preset]}
           layoutClass={layoutClasses[layout]}
           title={previewTitle}
@@ -86,6 +177,12 @@ export default function EditPage() {
           titleSize={sizes[size].title}
           textSize={sizes[size].text}
           showPrintGuide={showPrintGuide}
+          titlePos={titlePos}
+          datePos={datePos}
+          messagePos={messagePos}
+          onTitleDragStart={handleDragStart("title")}
+          onDateDragStart={handleDragStart("date")}
+          onMessageDragStart={handleDragStart("message")}
         />
 
         <section className="control-panel">

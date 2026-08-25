@@ -1,12 +1,10 @@
 import { LeftFixedPanel } from "@/components/LeftFixedPanel";
-import { PageStyle } from "@/components/PageStyle";
+import "@/styles/guide.css";
+import "@/styles/features.css";
 
 export default function FeaturesPage() {
   return (
     <>
-      <PageStyle href="/styles/guide.css" />
-      <PageStyle href="/styles/features.css" />
-
       <main className="split-box">
         <div className="left">
           <LeftFixedPanel compact />

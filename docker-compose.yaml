@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # dbという名前のデータベース機能（コンテナ）を作ります
   db:
@@ -18,22 +16,46 @@ services:
     # データを自分のPC側に保存して、Dockerを消してもデータが消えないようにする
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
   api:
     build: ./image_generate
     container_name: spectart-api
+    restart: always
     ports:
       - "5000:5000"
     env_file:
       - ./image_generate/.env
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: spectart-frontend
+    restart: always
+    command: sh -c "npx prisma db push --schema=db/schema.prisma && npm run dev"
     ports:
       - "3000:3000"
+    environment:
+      - DATABASE_URL=mysql://root:root@db:3306/spectart_db
+      - JWT_SECRET=change-this-to-a-random-secret-in-production
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
-      - api
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
 
 volumes:
   mysql_data:

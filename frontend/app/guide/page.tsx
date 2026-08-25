@@ -1,12 +1,10 @@
 import { LeftFixedPanel } from "@/components/LeftFixedPanel";
-import { PageStyle } from "@/components/PageStyle";
 import { RouteAnchor } from "@/components/RouteAnchor";
+import "@/styles/guide.css";
 
 export default function GuidePage() {
   return (
     <>
-      <PageStyle href="/styles/guide.css" />
-
       <main className="split-box">
         <div className="left">
           <LeftFixedPanel compact />
