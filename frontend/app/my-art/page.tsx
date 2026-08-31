@@ -1,22 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArtworkCard } from "@/components/ArtworkCard";
 import { Header } from "@/components/Header";
 import "@/styles/my-art.css";
 
-const artworks = [
-  { title: "Moonlight Echo", date: "2026.06.17" },
-  { title: "Silent Memory", date: "2026.06.14" },
-  { title: "Ocean Noise", date: "2026.06.10" },
-  { title: "Sunset Sound", date: "2026.06.08" },
-  { title: "Night Garden", date: "2026.06.04" },
-  { title: "Whisper", date: "2026.06.01" },
-];
+type Artwork = {
+  id: number;
+  title: string;
+  imageUrl: string;
+  createdAt: string;
+};
 
 export default function MyArtPage() {
-  const [selected, setSelected] = useState(artworks[0]);
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [selected, setSelected] = useState<Artwork | null>(null);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/artworks")
+      .then((res) => res.json())
+      .then((data: Artwork[]) => {
+        console.log("取得結果:", data);
+
+        setArtworks(data);
+
+        if (data.length > 0) {
+          setSelected(data[0]);
+        }
+      })
+      .catch((err) => console.error("アートワーク取得失敗", err));
+  }, []);
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+
+    return `${d.getFullYear()}.${String(
+      d.getMonth() + 1
+    ).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+  };
 
   return (
     <>
@@ -26,18 +48,19 @@ export default function MyArtPage() {
         <section className="gallery-header">
           <div className="gallery-title">
             <h1>My Art</h1>
-
-            <p>6 Artworks</p>
+            <p>{artworks.length} Artworks</p>
           </div>
 
           <div className="gallery-tools">
-            <input type="text" placeholder="Search Artwork" className="search-box" />
+            <input
+              type="text"
+              placeholder="Search Artwork"
+              className="search-box"
+            />
 
             <select className="sort-select">
               <option>Newest</option>
-
               <option>Oldest</option>
-
               <option>Title</option>
             </select>
           </div>
@@ -46,9 +69,10 @@ export default function MyArtPage() {
         <section className="gallery-grid">
           {artworks.map((artwork) => (
             <ArtworkCard
-              key={artwork.title}
+              key={artwork.id}
               title={artwork.title}
-              date={artwork.date}
+              date={formatDate(artwork.createdAt)}
+              imageUrl={artwork.imageUrl}
               onView={() => {
                 setSelected(artwork);
                 setOpen(true);
@@ -60,24 +84,32 @@ export default function MyArtPage() {
 
       <div
         className="view-modal"
-        id="view-modal"
         style={{ display: open ? "flex" : "none" }}
-        onClick={(event) => {
-          if (event.currentTarget === event.target) {
+        onClick={(e) => {
+          if (e.currentTarget === e.target) {
             setOpen(false);
           }
         }}
       >
         <div className="view-content">
-          <button className="close-view" id="close-view" onClick={() => setOpen(false)}>
+          <button
+            className="close-view"
+            onClick={() => setOpen(false)}
+          >
             <i className="fa-solid fa-xmark" />
           </button>
 
-          <img src="/image/generated-sample.png" id="modal-image" alt="Artwork" />
+          {selected && (
+            <>
+              {selected.imageUrl}
 
-          <h2 id="modal-title">{selected.title}</h2>
+              <h2 id="modal-title">{selected.title}</h2>
 
-          <p id="modal-date">{selected.date}</p>
+              <p id="modal-date">
+                {formatDate(selected.createdAt)}
+              </p>
+            </>
+          )}
         </div>
       </div>
     </>
