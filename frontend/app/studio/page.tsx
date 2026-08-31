@@ -9,7 +9,7 @@ import { LoginModal } from "@/components/LoginModal";
 import { SignupModal } from "@/components/SignupModal";
 import { SvgFilters } from "@/components/SvgFilters";
 import { useAuth } from "@/context/AuthContext";
-import { generateArtwork, uploadAudio } from "@/lib/api";
+import { generateArtwork, saveArtwork, uploadAudio } from "@/lib/api";
 import "@/styles/studio.css";
 
 const previewWaveform = Array.from({ length: 84 }, (_, index) => {
@@ -42,7 +42,7 @@ function StudioPageContent() {
     setWaveform([]);
   };
 
-  const onGenerate = async () => {
+const onGenerate = async () => {
     if (!file || generationPhase === "loading" || generationPhase === "complete") {
       return;
     }
@@ -61,12 +61,25 @@ function StudioPageContent() {
       setArtworkId(result.artworkId);
       setGenerated(true);
       setGenerationPhase("idle");
+
+      // ↓ ここから追加
+      if (user) {
+        const title = file.name.replace(/\.[^/.]+$/, "");
+        try {
+          await saveArtwork(title, result.imageUrl);
+        } catch (err) {
+          console.error("アートワークの保存に失敗しました", err);
+        }
+      }
+      // ↑ ここまで追加
+
     } catch (error) {
       console.error("Artwork generation failed", error);
       setGenerationPhase("error");
     }
   };
 
+  
   const overlay = isLoadingPreview
     ? { phase: "loading" as const, waveform: previewWaveform }
     : generationPhase !== "idle" && file

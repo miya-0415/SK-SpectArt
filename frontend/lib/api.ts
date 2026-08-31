@@ -328,6 +328,16 @@ export async function login(_email: string, _password: string): Promise<LoginRes
   return { userId: "mock-user-id" };
 }
 
-export async function saveArtwork(_artworkId: string): Promise<{ saved: true }> {
+// ↓ 変更後
+export async function saveArtwork(
+  title: string,
+  imageUrl: string
+): Promise<{ saved: true }> {
+  const res = await fetch("/api/artworks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, imageUrl }),
+  });
+  if (!res.ok) throw new Error("Failed to save artwork");
   return { saved: true };
 }

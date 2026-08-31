@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import { ActionButtons } from "@/components/ActionButtons";
 import { Header } from "@/components/Header";
 import { PreviewPanel } from "@/components/PreviewPanel";
-import { saveArtwork } from "@/lib/api";
 import "@/styles/edit.css";
 
 
@@ -155,8 +154,7 @@ export default function EditPage() {
     window.addEventListener("mouseup", handleDragEnd);
   };
 
-  const save = async () => {
-    await saveArtwork(artworkId);
+  const save = () => {
     router.push("/my-art");
   };
 
